@@ -4,23 +4,24 @@ from vispy.util.transforms import *
 vertex = """
 attribute vec3 position;
 attribute vec3 color;
+uniform vec3 mask;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-varying vec3 v_color;
+varying vec4 v_color;
 
 void main()
 {
     gl_Position = projection * view * model * vec4(position, 1);
-    v_color = color;
+    v_color = vec4(mask * color, 1);
 }
 """
 
 fragment = """
-varying vec3 v_color;
+varying vec4 v_color;
 void main()
 {
-    gl_FragColor = vec4(v_color, 1.0);
+    gl_FragColor = v_color;
 }
 """
 
@@ -57,6 +58,20 @@ class Canvas(app.Canvas):
              4, 6, 5]
         self.I = gloo.IndexBuffer(I)
 
+        L = [0, 1,
+             1, 2,
+             2, 3,
+             3, 0,
+             4, 7,
+             7, 6,
+             6, 5,
+             5, 4,
+             0, 5,
+             1, 6,
+             2, 7,
+             3, 4]
+        self.L = gloo.IndexBuffer(L)
+
         self.timer = app.Timer('auto', self.on_timer)
         self.timer.start()
 
@@ -64,7 +79,10 @@ class Canvas(app.Canvas):
 
     def on_draw(self, event):
         gloo.clear()
+        self.program['mask'] = [1, 1, 1]
         self.program.draw('triangles', self.I)
+        self.program['mask'] = [0, 0, 0]
+        self.program.draw('lines', self.L)
 
     def on_timer(self, event):
         self.phi += 1
